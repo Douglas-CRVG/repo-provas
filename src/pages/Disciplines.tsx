@@ -12,7 +12,9 @@ import {
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Search from "../components/Search/Search";
 import useAuth from "../hooks/useAuth";
+import useOptions from "../hooks/useCategory";
 import api, {
   Category,
   Discipline,
@@ -21,29 +23,55 @@ import api, {
   TestByDiscipline,
 } from "../services/api";
 
+export interface Search {
+  disciplina: string;
+}
+
 function Disciplines() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [terms, setTerms] = useState<TestByDiscipline[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [data, setData] = useState<Search>({ disciplina: "" });
+  const { disciplines } = useOptions();
 
   useEffect(() => {
     async function loadPage() {
       if (!token) return;
 
       const { data: testsData } = await api.getTestsByDiscipline(token);
-      setTerms(testsData.tests);
+      setTerms(handleDiscipline(testsData.tests));
       const { data: categoriesData } = await api.getCategories(token);
       setCategories(categoriesData.categories);
     }
     loadPage();
-  }, [token]);
+  }, [token, data.disciplina]);
+
+  function handleDiscipline(tests: TestByDiscipline[]) {
+    if (data.disciplina === "") {
+      return tests;
+    }
+    return tests.filter((test) => {
+      let { disciplines } = test;
+      const aux = disciplines.filter((discipline) => {
+        if (data.disciplina === "" || discipline.name === data.disciplina) {
+          return discipline;
+        }
+      });
+      if (aux.length > 0) {
+        test.disciplines = aux;
+        return test;
+      }
+    });
+  }
 
   return (
     <>
-      <TextField
-        sx={{ marginX: "auto", marginBottom: "25px", width: "450px" }}
-        label="Pesquise por disciplina"
+      <Search
+        options={disciplines}
+        data={data}
+        setData={setData}
+        name="disciplina"
       />
       <Divider sx={{ marginBottom: "35px" }} />
       <Box

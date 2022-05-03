@@ -11,14 +11,20 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import Search from "../components/Search/Search";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import useOptions from "../hooks/useCategory";
 import api, {
   Category,
   TeacherDisciplines,
   Test,
   TestByTeacher,
 } from "../services/api";
+
+export interface Search {
+  teacher: string;
+}
 
 function Instructors() {
   const navigate = useNavigate();
@@ -27,25 +33,31 @@ function Instructors() {
     TestByTeacher[]
   >([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [data, setData] = useState<Search>({ teacher: "" });
+  const { teachers } = useOptions();
 
   useEffect(() => {
     async function loadPage() {
       if (!token) return;
 
       const { data: testsData } = await api.getTestsByTeacher(token);
-      setTeachersDisciplines(testsData.tests);
+      setTeachersDisciplines(handleTeachers(testsData.tests));
       const { data: categoriesData } = await api.getCategories(token);
       setCategories(categoriesData.categories);
     }
     loadPage();
-  }, [token]);
+  }, [token, data.teacher]);
+
+  function handleTeachers(tests: TestByTeacher[]) {
+    if (data.teacher === "") {
+      return tests;
+    }
+    return tests.filter((test) => test.teacher.name === data.teacher);
+  }
 
   return (
     <>
-      <TextField
-        sx={{ marginX: "auto", marginBottom: "25px", width: "450px" }}
-        label="Pesquise por pessoa instrutora"
-      />
+      <Search options={teachers} data={data} setData={setData} name="teacher" />
       <Divider sx={{ marginBottom: "35px" }} />
       <Box
         sx={{
